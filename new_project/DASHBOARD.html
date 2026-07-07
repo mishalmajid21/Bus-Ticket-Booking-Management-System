@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Ticket Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>Dashboard</h1>
+    <nav>
+        <a href="history.html">History</a>
+        <a href="reset.html">Reset Password</a>
+    </nav>
+</header>
+
+<div class="container">
+
+    <h1>Welcome, <span id="userName"></span></h1>
+
+    <h2>Choose Your Seat</h2>
+
+    <h3 id="routeDisplay">Karachi → Lahore</h3>
+
+    <label>Select Journey Date</label>
+    <input type="date" id="journeyDate">
+
+    <label>Available Buses</label>
+    <select id="busSelect"></select>
+
+    <label>Ticket Type</label>
+    <select id="ticketType">
+        <option value="Standard">Standard (Non AC)</option>
+        <option value="Business">Business (AC)</option>
+        <option value="First Class">First Class (AC + WIFI)</option>
+    </select>
+
+    <label>Payment Method</label>
+    <select id="paymentMethod">
+        <option value="Cash">Cash</option>
+        <option value="Credit Card">Credit Card</option>
+        <option value="JazzCash">JazzCash</option>
+        <option value="EasyPaisa">EasyPaisa</option>
+    </select>
+
+    <h3 id="ticketPrice">Ticket Price: Rs. 3000</h3>
+
+    <h3>Select Seats</h3>
+
+    <div class="legend">
+        <span class="box booked-box"></span> Booked
+        <span class="box available-box"></span> Available
+        <span class="box selected-box"></span> Your Seat
+    </div>
+
+    <div id="seatMap"></div>
+
+    <button id="bookBtn" disabled>Confirm Booking</button>
+
+    <button onclick="window.location.href='history.html'" class="history-btn">
+        View Booking History
+    </button>
+
+    <button id="logoutBtn">Logout</button>
+
+</div>
+
+<script>
+    // ── Session check ──────────────────────────────
+    const passenger_id = localStorage.getItem('passenger_id');
+    const userName     = localStorage.getItem('userName') || 'Guest';
+
+    if (!passenger_id) {
+        alert('Please log in first.');
+        window.location.href = 'login.html';
+    }
+
+    document.getElementById('userName').textContent = userName;
+
+    // ── Prices (mirror of DB / get_buses.php) ──────
+    let buses = [];
+
+    const journeyDateInput = document.getElementById('journeyDate');
+    const busSelect        = document.getElementById('busSelect');
+    const seatMap          = document.getElementById('seatMap');
+    const bookBtn          = document.getElementById('bookBtn');
+
+    const today = new Date().toISOString().split('T')[0];
+    journeyDateInput.value = today;
+
+    let selectedSeats = new Set();
+
+    // ── Load buses from PHP ────────────────────────
+    async function loadBuses() {
+        try {
+            const res  = await fetch('backend/get_buses.php');
+            const data = await res.json();
+
+            if (!data.success) throw new Error(data.message);
+
+            buses = data.buses;
+            busSelect.innerHTML = '';
+
+            buses.forEach(bus => {
+                const option       = document.createElement('option');
+                option.value       = bus.bus_id;
+                option.textContent = `${bus.bus_no_plate} | ${bus.route}`;
+                busSelect.appendChild(option);
+            });
+
+            updateRouteDisplay();
+            updateTicketPrice();
+            await loadSeatMap();
+
+        } catch (err) {
+            alert('Could not load buses. Make sure WAMP is running.\n' + err.message);
+        }
+    }
+
+    // ── Ticket price display ───────────────────────
+    function updateTicketPrice() {
+        const busId      = parseInt(busSelect.value);
+        const bus        = buses.find(b => b.bus_id === busId);
+        const ticketType = document.getElementById('ticketType').value;
+        if (!bus) return;
+
+        const price   = bus.prices[ticketType];
+        const feature = bus.features[ticketType];
+
+        document.getElementById('ticketPrice').innerHTML =
+            `${ticketType}<br>${feature}<br>Rs. ${price}`;
+    }
+
+    // ── Load seat map from PHP ─────────────────────
+    async function loadSeatMap() {
+        seatMap.innerHTML = '';
+        selectedSeats.clear();
+        bookBtn.disabled = true;
+
+        const busId = parseInt(busSelect.value);
+        const date  = journeyDateInput.value;
+        if (!busId || !date) return;
+
+        const bus = buses.find(b => b.bus_id === busId);
+        if (!bus) return;
+
+        let bookedSeats = new Set();
+        try {
+            const res  = await fetch(`backend/get_booked_seats.php?bus_id=${busId}&travel_date=${date}`);
+            const data = await res.json();
+            if (data.success) {
+                data.booked_seats.forEach(s => bookedSeats.add(s));
+            }
+        } catch (err) {
+            console.error('Could not fetch booked seats:', err);
+        }
+
+        for (let i = 1; i <= bus.total_seats; i++) {
+            if ((i - 1) % 4 === 2) {
+                const aisle = document.createElement('div');
+                aisle.classList.add('aisle');
+                seatMap.appendChild(aisle);
+            }
+
+            const seat = document.createElement('div');
+            seat.textContent = i;
+            seat.classList.add('seat');
+
+            if (bookedSeats.has(i)) {
+                seat.classList.add('booked');
+            } else {
+                const seatNumber = i;
+                seat.addEventListener('click', function () {
+                    toggleSeatSelection(seatNumber, seat);
+                });
+            }
+            seatMap.appendChild(seat);
+        }
+    }
+
+    function toggleSeatSelection(seatNumber, seatElement) {
+        if (selectedSeats.has(seatNumber)) {
+            selectedSeats.delete(seatNumber);
+            seatElement.classList.remove('selected');
+        } else {
+            selectedSeats.add(seatNumber);
+            seatElement.classList.add('selected');
+        }
+        bookBtn.disabled = selectedSeats.size === 0;
+    }
+
+    // ── Confirm booking ────────────────────────────
+    bookBtn.addEventListener('click', async () => {
+        if (selectedSeats.size === 0) {
+            alert('Select seats first.');
+            return;
+        }
+
+        const busId        = parseInt(busSelect.value);
+        const bus          = buses.find(b => b.bus_id === busId);
+        const ticketType   = document.getElementById('ticketType').value;
+        const paymentType  = document.getElementById('paymentMethod').value;
+        const date         = journeyDateInput.value;
+        const pricePerSeat = bus.prices[ticketType];
+        const totalBill    = selectedSeats.size * pricePerSeat;
+
+        const formData = new FormData();
+        formData.append('passenger_id', passenger_id);
+        formData.append('bus_id',       busId);
+        formData.append('travel_date',  date);
+        formData.append('seats',        JSON.stringify(Array.from(selectedSeats)));
+        formData.append('ticket_type',  ticketType);
+        formData.append('payment_type', paymentType);
+        formData.append('total_bill',   totalBill);
+
+        try {
+            const res  = await fetch('backend/book_ticket.php', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if (data.success) {
+                alert(data.message);
+                window.location.href = 'history.html';
+            } else {
+                alert('Booking failed: ' + data.message);
+            }
+        } catch (err) {
+            alert('Could not connect to server. Make sure WAMP is running.');
+            console.error(err);
+        }
+    });
+
+    // ── Route display ──────────────────────────────
+    function updateRouteDisplay() {
+        const busId = parseInt(busSelect.value);
+        const bus   = buses.find(b => b.bus_id === busId);
+        if (bus) {
+            document.getElementById('routeDisplay').textContent = bus.route;
+        }
+    }
+
+    // ── Events ────────────────────────────────────
+    busSelect.addEventListener('change', () => {
+        updateRouteDisplay();
+        updateTicketPrice();
+        loadSeatMap();
+    });
+
+    document.getElementById('ticketType').addEventListener('change', updateTicketPrice);
+    journeyDateInput.addEventListener('change', loadSeatMap);
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = 'login.html';
+    });
+
+    // ── Init ──────────────────────────────────────
+    loadBuses();
+</script>
+
+</body>
+</html>

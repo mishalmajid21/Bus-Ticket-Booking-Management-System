@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>Admin Dashboard</h1>
+    <nav>
+        <a href="index.html">Home</a>
+    </nav>
+</header>
+
+<div class="container admin-container">
+
+    <h1>Welcome, <span id="adminName"></span></h1>
+
+    <!-- ── Stat cards ─────────────────────────────── -->
+    <div class="stat-grid">
+        <div class="stat-card">
+            <h3 id="statBookings">0</h3>
+            <p>Total Bookings</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="statConfirmed">0</h3>
+            <p>Confirmed</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="statCancelled">0</h3>
+            <p>Cancelled</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="statRevenue">Rs. 0</h3>
+            <p>Total Revenue</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="statPassengers">0</h3>
+            <p>Passengers</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="statBuses">0</h3>
+            <p>Buses</p>
+        </div>
+    </div>
+
+    <!-- ── Tabs ───────────────────────────────────── -->
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="bookingsTab">Bookings</button>
+        <button class="tab-btn" data-tab="busesTab">Buses</button>
+        <button class="tab-btn" data-tab="passengersTab">Passengers</button>
+    </div>
+
+    <!-- ── Bookings Tab ───────────────────────────── -->
+    <section id="bookingsTab" class="tab-panel">
+        <h2>All Bookings</h2>
+
+        <label>Filter by Status</label>
+        <select id="statusFilter">
+            <option value="">All</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Cancelled">Cancelled</option>
+        </select>
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Ticket #</th>
+                    <th>Passenger</th>
+                    <th>Bus / Route</th>
+                    <th>Travel Date</th>
+                    <th>Seats</th>
+                    <th>Type</th>
+                    <th>Payment</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="bookingsBody"></tbody>
+        </table>
+    </section>
+
+    <!-- ── Buses Tab ──────────────────────────────── -->
+    <section id="busesTab" class="tab-panel" style="display:none;">
+        <h2>Manage Buses</h2>
+
+        <form id="addBusForm" class="inline-form">
+            <label>Bus Number Plate</label>
+            <input type="text" id="newBusPlate" placeholder="e.g. PK404" required>
+
+            <label>Route</label>
+            <input type="text" id="newBusRoute" placeholder="e.g. Lahore → Multan" required>
+
+            <label>Total Seats</label>
+            <input type="number" id="newBusSeats" value="24" min="1" max="100" required>
+
+            <button type="submit">Add Bus</button>
+        </form>
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Bus ID</th>
+                    <th>Plate</th>
+                    <th>Route</th>
+                    <th>Total Seats</th>
+                    <th>Active Bookings</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="busesBody"></tbody>
+        </table>
+    </section>
+
+    <!-- ── Passengers Tab ─────────────────────────── -->
+    <section id="passengersTab" class="tab-panel" style="display:none;">
+        <h2>Registered Passengers</h2>
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Bookings Made</th>
+                </tr>
+            </thead>
+            <tbody id="passengersBody"></tbody>
+        </table>
+    </section>
+
+    <button id="logoutBtn">Logout</button>
+
+</div>
+
+<script>
+    // ── Session check ──────────────────────────────
+    const admin_id  = localStorage.getItem('admin_id');
+    const adminName = localStorage.getItem('adminName') || 'Admin';
+
+    if (!admin_id) {
+        alert('Please log in as an admin first.');
+        window.location.href = 'admin_login.html';
+    }
+
+    document.getElementById('adminName').textContent = adminName;
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('admin_id');
+        localStorage.removeItem('adminName');
+        window.location.href = 'admin_login.html';
+    });
+
+    // ── Tabs ────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.tab).style.display = 'block';
+        });
+    });
+
+    // ── Stats ───────────────────────────────────────
+    async function loadStats() {
+        try {
+            const res  = await fetch('backend/admin_get_stats.php');
+            const data = await res.json();
+            if (!data.success) return;
+
+            const s = data.stats;
+            document.getElementById('statBookings').textContent   = s.total_bookings;
+            document.getElementById('statConfirmed').textContent  = s.confirmed_bookings;
+            document.getElementById('statCancelled').textContent  = s.cancelled_bookings;
+            document.getElementById('statRevenue').textContent    = 'Rs. ' + s.total_revenue.toLocaleString();
+            document.getElementById('statPassengers').textContent = s.total_passengers;
+            document.getElementById('statBuses').textContent      = s.total_buses;
+        } catch (err) {
+            console.error('Could not load stats:', err);
+        }
+    }
+
+    // ── Bookings ────────────────────────────────────
+    const bookingsBody  = document.getElementById('bookingsBody');
+    const statusFilter   = document.getElementById('statusFilter');
+
+    async function loadBookings() {
+        bookingsBody.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
+
+        try {
+            const status = statusFilter.value;
+            const res  = await fetch(`backend/admin_get_bookings.php?status=${status}`);
+            const data = await res.json();
+
+            if (!data.success) {
+                bookingsBody.innerHTML = '<tr><td colspan="10">Could not load bookings.</td></tr>';
+                return;
+            }
+
+            const bookings = data.bookings;
+            if (bookings.length === 0) {
+                bookingsBody.innerHTML = '<tr><td colspan="10">No bookings found.</td></tr>';
+                return;
+            }
+
+            bookingsBody.innerHTML = '';
+            bookings.forEach(b => {
+                const tr = document.createElement('tr');
+                const statusColor = b.status === 'Cancelled' ? 'color:red' : 'color:green';
+
+                tr.innerHTML = `
+                    <td>${b.ticket_id}</td>
+                    <td>${b.passenger_name}<br><small>${b.passenger_email}</small></td>
+                    <td>${b.busNumber ?? '—'}<br><small>${b.route ?? ''}</small></td>
+                    <td>${b.date}</td>
+                    <td>${b.seats.join(', ')}</td>
+                    <td>${b.ticketType}</td>
+                    <td>${b.paymentMethod ?? '—'}</td>
+                    <td>Rs. ${b.totalBill.toLocaleString()}</td>
+                    <td><span style="${statusColor}">${b.status}</span></td>
+                    <td></td>
+                `;
+
+                if (b.status === 'Confirmed') {
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.classList.add('cancel-btn', 'small-btn');
+                    cancelBtn.onclick = () => adminCancelBooking(b.ticket_id);
+                    tr.lastElementChild.appendChild(cancelBtn);
+                }
+
+                bookingsBody.appendChild(tr);
+            });
+        } catch (err) {
+            bookingsBody.innerHTML = '<tr><td colspan="10">Could not connect to server. Make sure WAMP is running.</td></tr>';
+            console.error(err);
+        }
+    }
+
+    async function adminCancelBooking(ticket_id) {
+        if (!confirm('Cancel this booking as admin?')) return;
+
+        const formData = new FormData();
+        formData.append('ticket_id', ticket_id);
+
+        try {
+            const res  = await fetch('backend/admin_cancel_booking.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) {
+                loadBookings();
+                loadStats();
+            }
+        } catch (err) {
+            alert('Could not connect to server. Make sure WAMP is running.');
+            console.error(err);
+        }
+    }
+
+    statusFilter.addEventListener('change', loadBookings);
+
+    // ── Buses ───────────────────────────────────────
+    const busesBody = document.getElementById('busesBody');
+
+    async function loadBuses() {
+        busesBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+        try {
+            const res  = await fetch('backend/admin_get_buses.php');
+            const data = await res.json();
+
+            if (!data.success || data.buses.length === 0) {
+                busesBody.innerHTML = '<tr><td colspan="6">No buses found.</td></tr>';
+                return;
+            }
+
+            busesBody.innerHTML = '';
+            data.buses.forEach(bus => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${bus.bus_id}</td>
+                    <td>${bus.bus_no_plate}</td>
+                    <td>${bus.route}</td>
+                    <td>${bus.total_seats}</td>
+                    <td>${bus.active_bookings}</td>
+                    <td></td>
+                `;
+
+                const delBtn = document.createElement('button');
+                delBtn.textContent = 'Delete';
+                delBtn.classList.add('cancel-btn', 'small-btn');
+                delBtn.onclick = () => deleteBus(bus.bus_id);
+                tr.lastElementChild.appendChild(delBtn);
+
+                busesBody.appendChild(tr);
+            });
+        } catch (err) {
+            busesBody.innerHTML = '<tr><td colspan="6">Could not connect to server. Make sure WAMP is running.</td></tr>';
+            console.error(err);
+        }
+    }
+
+    async function deleteBus(bus_id) {
+        if (!confirm('Delete this bus? This cannot be undone.')) return;
+
+        const formData = new FormData();
+        formData.append('bus_id', bus_id);
+
+        try {
+            const res  = await fetch('backend/admin_delete_bus.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) {
+                loadBuses();
+                loadStats();
+            }
+        } catch (err) {
+            alert('Could not connect to server. Make sure WAMP is running.');
+            console.error(err);
+        }
+    }
+
+    document.getElementById('addBusForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append('bus_no_plate', document.getElementById('newBusPlate').value.trim());
+        formData.append('route',        document.getElementById('newBusRoute').value.trim());
+        formData.append('total_seats',  document.getElementById('newBusSeats').value);
+
+        try {
+            const res  = await fetch('backend/admin_add_bus.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) {
+                document.getElementById('addBusForm').reset();
+                document.getElementById('newBusSeats').value = 24;
+                loadBuses();
+                loadStats();
+            }
+        } catch (err) {
+            alert('Could not connect to server. Make sure WAMP is running.');
+            console.error(err);
+        }
+    });
+
+    // ── Passengers ──────────────────────────────────
+    const passengersBody = document.getElementById('passengersBody');
+
+    async function loadPassengers() {
+        passengersBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+
+        try {
+            const res  = await fetch('backend/admin_get_passengers.php');
+            const data = await res.json();
+
+            if (!data.success || data.passengers.length === 0) {
+                passengersBody.innerHTML = '<tr><td colspan="5">No passengers found.</td></tr>';
+                return;
+            }
+
+            passengersBody.innerHTML = '';
+            data.passengers.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.passenger_id}</td>
+                    <td>${p.name}</td>
+                    <td>${p.email}</td>
+                    <td>${p.phones || '—'}</td>
+                    <td>${p.total_bookings}</td>
+                `;
+                passengersBody.appendChild(tr);
+            });
+        } catch (err) {
+            passengersBody.innerHTML = '<tr><td colspan="5">Could not connect to server. Make sure WAMP is running.</td></tr>';
+            console.error(err);
+        }
+    }
+
+    // ── Init ────────────────────────────────────────
+    loadStats();
+    loadBookings();
+    loadBuses();
+    loadPassengers();
+</script>
+
+</body>
+</html>

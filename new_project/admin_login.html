@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Admin Login</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html">Passenger Login</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h2>Admin Sign In</h2>
+        <form id="adminLoginForm">
+            <input type="text"     id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('adminLoginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch('backend/admin_login.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('admin_id', data.admin_id);
+                    localStorage.setItem('adminName', data.full_name);
+                    window.location.href = 'ADMIN_DASHBOARD.html';
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Could not connect to server. Make sure WAMP is running.');
+                console.error(err);
+            }
+        });
+    </script>
+
+    <footer>&copy; 2026 Bus Ticket Management System</footer>
+
+</body>
+</html>

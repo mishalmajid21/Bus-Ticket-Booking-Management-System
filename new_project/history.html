@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking History</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>Booking History</h1>
+    <nav>
+        <a href="DASHBOARD.html">DashBoard</a>
+        <a href="reset.html">Reset Password</a>
+    </nav>
+</header>
+
+<div class="container">
+    <h2>Your Booking Records</h2>
+    <ul id="bookingList"></ul>
+    <button id="logoutBtn">Logout</button>
+</div>
+
+<script>
+    const passenger_id = localStorage.getItem('passenger_id');
+    const userName     = localStorage.getItem('userName') || 'Guest';
+
+    if (!passenger_id) {
+        alert('Please log in first.');
+        window.location.href = 'login.html';
+    }
+
+    const bookingList = document.getElementById('bookingList');
+
+    async function loadBookingHistory() {
+        bookingList.innerHTML = '';
+
+        try {
+            const res  = await fetch(`backend/get_history.php?passenger_id=${passenger_id}`);
+            const data = await res.json();
+
+            if (!data.success) {
+                bookingList.innerHTML = '<li class="history-card">Could not load bookings.</li>';
+                return;
+            }
+
+            const bookings = data.bookings;
+
+            if (bookings.length === 0) {
+                bookingList.innerHTML = '<li class="history-card">No bookings yet.</li>';
+                return;
+            }
+
+            bookings.forEach((b) => {
+                const li = document.createElement('li');
+                li.classList.add('history-card');
+
+                const statusColor = b.status === 'Cancelled' ? 'color:red' : 'color:green';
+
+                li.innerHTML = `
+                    <h3>${b.busNumber}</h3>
+                    <p><strong>Route:</strong> ${b.route}</p>
+                    <p><strong>Date:</strong> ${b.date}</p>
+                    <p><strong>Seats:</strong> ${b.seats.join(', ')}</p>
+                    <p><strong>Ticket Type:</strong> ${b.ticketType}</p>
+                    <p><strong>Payment:</strong> ${b.paymentMethod}</p>
+                    <p><strong>Total Bill:</strong> Rs. ${b.totalBill.toLocaleString()}</p>
+                    <p><strong>Status:</strong> <span style="${statusColor}">${b.status}</span></p>
+                `;
+
+                // Print Bill Button
+                const printBtn = document.createElement('button');
+                printBtn.textContent = 'Print Bill';
+                printBtn.classList.add('print-btn');
+                printBtn.onclick = () => printBill(b);
+                li.appendChild(printBtn);
+
+                // Cancel Button (only for confirmed bookings)
+                if (b.status === 'Confirmed') {
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.textContent = 'Cancel Booking';
+                    cancelBtn.classList.add('cancel-btn');
+                    cancelBtn.onclick = () => cancelBooking(b.ticket_id);
+                    li.appendChild(cancelBtn);
+                }
+
+                bookingList.appendChild(li);
+            });
+
+        } catch (err) {
+            bookingList.innerHTML = '<li class="history-card">Could not connect to server. Make sure WAMP is running.</li>';
+            console.error(err);
+        }
+    }
+
+    // Print Bill
+    function printBill(b) {
+        const billWindow = window.open('', '', 'width=800,height=600');
+        billWindow.document.write(`
+            <html>
+            <head>
+                <title>Bus Ticket Bill</title>
+                <style>
+                    body { font-family: Arial; padding: 30px; }
+                    h1   { text-align: center; color: #003366; }
+                    .bill { border: 2px solid #003366; padding: 20px; border-radius: 10px; }
+                    p    { font-size: 18px; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <h1>Bus Ticket Bill</h1>
+                <div class="bill">
+                    <p><strong>Name:</strong> ${userName}</p>
+                    <p><strong>Bus Number:</strong> ${b.busNumber}</p>
+                    <p><strong>Route:</strong> ${b.route}</p>
+                    <p><strong>Date:</strong> ${b.date}</p>
+                    <p><strong>Seats:</strong> ${b.seats.join(', ')}</p>
+                    <p><strong>Ticket Type:</strong> ${b.ticketType}</p>
+                    <p><strong>Payment Method:</strong> ${b.paymentMethod}</p>
+                    <p><strong>Total Bill:</strong> Rs. ${b.totalBill.toLocaleString()}</p>
+                    <p><strong>Status:</strong> ${b.status}</p>
+                </div>
+            </body>
+            </html>
+        `);
+        billWindow.document.close();
+        billWindow.print();
+    }
+
+    // Cancel Booking - sends ticket_id and passenger_id
+    async function cancelBooking(ticket_id) {
+        if (!confirm('Are you sure you want to cancel this booking?')) return;
+
+        const formData = new FormData();
+        formData.append('ticket_id',    ticket_id);
+        formData.append('passenger_id', passenger_id);
+
+        try {
+            const res  = await fetch('backend/cancel_booking.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) loadBookingHistory();
+        } catch (err) {
+            alert('Could not connect to server. Make sure WAMP is running.');
+            console.error(err);
+        }
+    }
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = 'login.html';
+    });
+
+    loadBookingHistory();
+</script>
+
+</body>
+</html>

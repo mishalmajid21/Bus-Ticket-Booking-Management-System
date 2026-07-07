@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Reset</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Reset Password</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html">Login</a>
+            <a href="signup.html">Sign Up</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h2>Change Your Password</h2>
+        <form id="resetForm">
+            <input type="password" name="oldPassword"     placeholder="Old Password"     required>
+            <input type="password" name="newPassword"     placeholder="New Password"     required>
+            <input type="password" name="confirmPassword" placeholder="Confirm Password" required>
+            <button type="submit">Update Password</button>
+        </form>
+    </div>
+
+    <script>
+        const resetForm = document.getElementById('resetForm');
+
+        resetForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const passenger_id = localStorage.getItem('passenger_id');
+
+            if (!passenger_id) {
+                alert('You must be logged in to reset your password.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const oldPass     = resetForm.oldPassword.value;
+            const newPass     = resetForm.newPassword.value;
+            const confirmPass = resetForm.confirmPassword.value;
+
+            if (newPass !== confirmPass) {
+                alert('New Password and Confirm Password do not match!');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('passenger_id',    passenger_id);
+            formData.append('oldPassword',     oldPass);
+            formData.append('newPassword',     newPass);
+            formData.append('confirmPassword', confirmPass);
+
+            try {
+                const response = await fetch('backend/reset_password.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                alert(data.message);
+                if (data.success) {
+                    window.location.href = 'login.html';
+                }
+            } catch (err) {
+                alert('Could not connect to server. Make sure WAMP is running.');
+                console.error(err);
+            }
+        });
+    </script>
+
+    <footer>&copy; 2026 Bus Ticket Management System</footer>
+
+</body>
+</html>

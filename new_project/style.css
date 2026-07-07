@@ -1,0 +1,329 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#34495E;
+    min-height:100vh;
+}
+
+header{
+    background:#1B2631;
+    padding:15px;
+    color:white;
+    text-align:center;
+}
+
+header h1{
+    margin-bottom:15px;
+}
+
+nav a{
+    color:white;
+    margin:0 15px;
+    text-decoration:none;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+nav a:hover{
+    color:#00f2fe;
+}
+
+.container{
+    width:900px;
+    max-width:95%;
+    margin:40px auto;
+    background:#B8C3CC;
+    padding:40px;
+    border-radius:10px;
+    box-shadow:0 0 20px rgba(0,0,0,0.2);
+}
+
+h1,h2{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+h3{
+    margin-top:20px;
+    margin-bottom:10px;
+}
+
+label{
+    font-weight:bold;
+    display:block;
+    margin-top:15px;
+}
+
+select,input{
+    width:100%;
+    padding:12px;
+    margin-top:5px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+
+#ticketPrice{
+    text-align:center;
+    color:green;
+    font-size:24px;
+    margin-top:20px;
+}
+
+.legend{
+    margin:15px 0;
+}
+
+.box{
+    display:inline-block;
+    width:18px;
+    height:18px;
+    margin:0 5px 0 15px;
+    vertical-align:middle;
+    border-radius:4px;
+}
+
+.booked-box{
+    background:#d9534f;
+}
+
+.available-box{
+    background:#e0e0e0;
+}
+
+.selected-box{
+    background:#4caf50;
+}
+
+#seatMap{
+    display:grid;
+    grid-template-columns:60px 60px 40px 60px 60px;
+    gap:15px;
+    justify-content:center;
+    margin:30px 0;
+}
+
+.seat{
+    width:60px;
+    height:60px;
+    background:#eee;
+    border:1px solid #999;
+    cursor:pointer;
+    text-align:center;
+    line-height:60px;
+    border-radius:8px;
+    font-weight:bold;
+    transition:0.3s;
+}
+
+.seat:hover{
+    background:#b3d9ff;
+}
+
+.seat.selected{
+    background:#4caf50;
+    color:white;
+}
+
+.seat.booked{
+    background:#d9534f;
+    color:white;
+    cursor:not-allowed;
+}
+
+.aisle{
+    visibility:hidden;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    background:#003366;
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    margin-top:15px;
+    transition:0.3s;
+    font-size:16px;
+}
+
+button:hover{
+    background:#0055aa;
+}
+
+.history-btn{
+    background:#28a745;
+}
+
+.history-btn:hover{
+    background:#1f8a38;
+}
+
+.cancel-btn{
+    background:#d9534f;
+}
+
+.cancel-btn:hover{
+    background:#b52b27;
+}
+
+#bookingList{
+    margin-top:20px;
+}
+
+.history-card{
+    background:#f4f4f4;
+    margin-bottom:20px;
+    padding:20px;
+    border-radius:10px;
+    list-style:none;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+.history-card h3{
+    color:#003366;
+    margin-bottom:10px;
+}
+
+.history-card p{
+    margin:8px 0;
+    font-size:16px;
+}
+
+footer{
+    text-align:center;
+    padding:15px;
+    background:#1B2631;
+    color:white;
+    margin-top:222px;
+}
+.print-btn{
+    background:#28a745;
+    margin-top:10px;
+}
+
+.print-btn:hover{
+    background:#1f8a38;
+}
+
+/* ── Admin Dashboard ─────────────────────────────── */
+
+.admin-container{
+    width:1100px;
+}
+
+.stat-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    gap:15px;
+    margin:25px 0;
+}
+
+.stat-card{
+    background:#1B2631;
+    color:white;
+    padding:20px 10px;
+    border-radius:10px;
+    text-align:center;
+}
+
+.stat-card h3{
+    font-size:26px;
+    margin-bottom:5px;
+    color:#00f2fe;
+}
+
+.stat-card p{
+    font-size:14px;
+    color:#ccc;
+}
+
+.tab-bar{
+    display:flex;
+    gap:10px;
+    margin:20px 0;
+    border-bottom:2px solid #1B2631;
+}
+
+.tab-btn{
+    width:auto;
+    background:transparent;
+    color:#1B2631;
+    border-radius:8px 8px 0 0;
+    margin-top:0;
+    font-weight:bold;
+}
+
+.tab-btn:hover{
+    background:#c7d0d7;
+}
+
+.tab-btn.active{
+    background:#003366;
+    color:white;
+}
+
+.tab-panel{
+    background:#f4f4f4;
+    padding:20px;
+    border-radius:0 0 10px 10px;
+}
+
+.inline-form{
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+}
+
+.inline-form label{
+    margin-top:0;
+    font-size:13px;
+}
+
+.inline-form input{
+    width:180px;
+}
+
+.inline-form button{
+    width:auto;
+    padding:12px 20px;
+    margin-top:5px;
+}
+
+.admin-table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:8px;
+    overflow:hidden;
+}
+
+.admin-table th, .admin-table td{
+    padding:10px;
+    text-align:left;
+    border-bottom:1px solid #ddd;
+    font-size:14px;
+}
+
+.admin-table th{
+    background:#003366;
+    color:white;
+}
+
+.admin-table tr:hover{
+    background:#eef3f8;
+}
+
+.small-btn{
+    width:auto;
+    padding:6px 12px;
+    margin-top:0;
+    font-size:13px;
+}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Signup Page</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html">Login</a>
+            <a href="reset.html">Reset Password</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h2>Sign Up</h2>
+        <form id="signupForm">
+            <input type="text"  id="name"     placeholder="Full Name"    required>
+            <input type="email" id="email"    placeholder="Email"        required>
+            <input type="tel"   id="phone"    placeholder="Phone Number" required>
+            <input type="password" id="password" placeholder="Password"  required>
+            <button type="submit">Sign Up</button>
+        </form>
+        <p style="margin-top: 20px;">Already have an account? <a href="login.html">Login here</a></p>
+    </div>
+
+    <script>
+        document.getElementById('signupForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const name     = document.getElementById('name').value.trim();
+            const email    = document.getElementById('email').value.trim();
+            const phone    = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value;
+
+            const formData = new FormData();
+            formData.append('name',     name);
+            formData.append('email',    email);
+            formData.append('phone',    phone);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch('backend/signup.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    localStorage.setItem('passenger_id', data.passenger_id);
+                    localStorage.setItem('userName',     data.name);
+                    window.location.href = 'login.html';
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Could not connect to server. Make sure WAMP is running.');
+                console.error(err);
+            }
+        });
+    </script>
+
+    <footer>&copy; 2026 Bus Ticket Management System</footer>
+
+</body>
+</html>
